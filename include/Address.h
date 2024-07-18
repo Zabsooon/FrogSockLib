@@ -20,74 +20,40 @@ private:
     std::string m_Message;
 };
 
-/* The Address class can be of different types eg. IPv4 or IPv6.
- * For that reason the Address class is an abstract class and we have
- * specific implementations for IPv4 and IPv6.
+/* If address hints are not specified they are set to support IPv4 or IPv6.
+ * Also the type of socket is set to TCP stream sockets.
  *
- * The Address cannot be used by itself in socket specific functions,
- * it is designed to work with wrapper functions (functions that add
- * functionality on top of the sockets logic).
- *
- * Since while we use 'getaddrinfo()' we can pass hints as a parameter,
- * I have decided to code that logic into constructors.
- * Default hints are implemented in default constructor.
- *
- * Since Address can be IPv4 or IPv6 we can manually check what type is Address.
- * This is done in that way so we can get advantage of polimorphism while,
- * still meeting requirements of sockets implementation (sockaddr_in and sockaddr_in6).
- *
- *
+ * Constructors:
+ * hostname: can be DNS, IPv4 or IPv6 address
+ * service: can be port number or service name eg. "http", "smtp"
  */
 class Address {
 public:
-    virtual ~Address() = default;
+    Address();
+    Address(const std::string& hostname, const std::string& service);
+    Address(const std::string& hostname, const std::string& service, const struct addrinfo& hints);
 
-    virtual std::string getAddress() const = 0;
-    virtual uint16_t getPort() const = 0;
+    void printAddresses() const;
 
-    virtual void setAddress(const std::string& address) = 0;
-    virtual void setPort(uint16_t port) = 0;
+    int getFlags() const;
+    int getAddressFamily() const;
+    int getSockType() const;
+    int getProtocol() const;
+    socklen_t getAddressLength() const;
 
-    virtual struct sockaddr* getSockaddr() = 0;
-    virtual socklen_t getSockaddrLen() const = 0;
-};
+    // For struct sockaddr *ai_addr:
+    void setAddress(const std::string& address);
+    void setPort(const std::string& port);
 
-class IPv4Address : Address {
-public:
-    IPv4Address();
-    IPv4Address(const std::string& address, uint16_t port);
-    IPv4Address(const std::string& address, uint16_t port, struct addrinfo& hints);
+    struct sockaddr* getSockaddr() const;
+    socklen_t getSockaddrLength() const;
+    in_port_t getPort() const;
+    struct sockaddr_in* getSockaddrIPv4() const;
+    struct sockaddr_in6* getSockaddrIPv6() const;
 
-    std::string getAddress() const override;
-    uint16_t getPort() const override;
-
-    void setAddress(const std::string& address) override;
-    void setPort(uint16_t port) override;
-
-    struct sockaddr* getSockaddr() override;
-    socklen_t getSockaddrLen() const override;
 
 private:
-    struct sockaddr_in m_Addr;
+    struct addrinfo m_Hints;
+    struct addrinfo* m_AddressInfo;
 };
-
-class IPv6Address : Address {
-public:
-    IPv6Address();
-    IPv6Address(const std::string& address, uint16_t port);
-    IPv6Address(const std::string& address, uint16_t port, struct addrinfo& hints);
-
-    std::string getAddress() const override;
-    uint16_t getPort() const override;
-
-    void setAddress(const std::string& address) override;
-    void setPort(uint16_t port) override;
-
-    struct sockaddr* getSockaddr() override;
-    socklen_t getSockaddrLen() const override;
-
-private:
-    struct sockaddr_in6 m_Addr;
-};
-
 #endif
