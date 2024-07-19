@@ -49,6 +49,10 @@ Address::Address(const std::string& hostname, const std::string& service, const 
     }
 }
 
+Address::~Address() {
+    freeaddrinfo(m_AddressInfo);
+}
+
 void Address::printAddresses() const {
     for(struct addrinfo* p = m_AddressInfo; p != nullptr; p = p->ai_next) {
         void* address;
@@ -65,6 +69,10 @@ void Address::printAddresses() const {
         inet_ntop(p->ai_family, address, ipstr, sizeof(ipstr));
         std::cout << "IP Address: " << ipstr << std::endl;
     }
+}
+
+struct addrinfo* Address::getAddrinfoPtr() const {
+    return m_AddressInfo;
 }
 
 int Address::getFlags() const {

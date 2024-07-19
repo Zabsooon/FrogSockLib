@@ -2,7 +2,9 @@
 #define FSL_SOCKET_H_
 
 #include <exception>
+#include <sstream>
 #include <string>
+#include <vector>
 
 #include "Address.h"
 
@@ -28,18 +30,26 @@ private:
 };
 
 class Socket {
-    Socket();
-    virtual ~Socket();
+public:
+    Socket(const Address& address);
+    Socket(int socketFD);
+    ~Socket();
 
-private:
-    void create();
-    void close();
-    void bind(const Address& address);
+    void bind();
     void connect(const Address& address);
-    void send(const std::string& data);
-    std::string receive(size_t size);
+    /* accept(Address& address)
+     * parameters: (socketFD, struct sockaddr_storage their_address, size of their_address)
+     * returns: **NEW** socketFD
+     * (and sets m_AddrLen in Address)
+     */
+    int accept(Address& address);
+    void sendData(const std::string& data);
+    void* receiveData(size_t size, void* buffer);
+private:
+    void create(const Address& address);
 protected:
-    int m_socketFD;
+    int m_SocketFD; // the top node
+    struct addrinfo** m_PtrToAddrPtr;
 };
 
 #endif

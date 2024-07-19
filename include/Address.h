@@ -10,6 +10,8 @@
 #include <arpa/inet.h>
 #include <sys/types.h>
 
+class Socket;
+
 class AddressException : public std::exception {
 public:
 
@@ -32,9 +34,11 @@ public:
     Address();
     Address(const std::string& hostname, const std::string& service);
     Address(const std::string& hostname, const std::string& service, const struct addrinfo& hints);
+    ~Address();
 
     void printAddresses() const;
 
+    struct addrinfo* getAddrinfoPtr() const;
     int getFlags() const;
     int getAddressFamily() const;
     int getSockType() const;
@@ -52,6 +56,9 @@ public:
     struct sockaddr_in6* getSockaddrIPv6() const;
 
 
+    friend Socket;
+protected:
+    socklen_t m_AddrLen; // for accept function in socket
 private:
     struct addrinfo m_Hints;
     struct addrinfo* m_AddressInfo;
