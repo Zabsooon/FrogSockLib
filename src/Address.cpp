@@ -19,7 +19,7 @@ const char* AddressException::what() const noexcept {
 // ---------- Address ----------
 Address::Address() {
     memset(&m_Hints, 0, sizeof(m_Hints));
-    m_Hints.ai_family = AF_UNSPEC;
+    m_Hints.ai_family = AF_UNSPEC; // results in address having type of IPv4 by default (hints != address)
     m_Hints.ai_socktype = SOCK_STREAM;
     m_Hints.ai_flags = AI_PASSIVE;
 
@@ -31,7 +31,7 @@ Address::Address() {
 
 Address::Address(const std::string& hostname, const std::string& service) {
     memset(&m_Hints, 0, sizeof(m_Hints));
-    m_Hints.ai_family = AF_UNSPEC;
+    m_Hints.ai_family = AF_UNSPEC; // results in address having type of IPv3 by default (hints != address)
     m_Hints.ai_socktype = SOCK_STREAM;
     m_Hints.ai_flags = AI_PASSIVE;
 
@@ -96,11 +96,44 @@ socklen_t Address::getAddressLength() const {
 }
 
 void Address::setAddress(const std::string& address) {
+    void* addr_ptr = nullptr;
+    int family = m_Hints.ai_family;
+    if(family == AF_INET) {
+        struct sockaddr_in addr;
+        addr_ptr = &(addr.sin_addr);
+    } else if(family == AF_INET6) {
+        struct sockaddr_in6 addr;
+        addr_ptr = &(addr.sin6_addr);
+    } else if(family == AF_UNSPEC) {
+        perror("Address cannot be set for general address type");
+        return;
+    } else {
+        throw AddressException("Unsupported address family");
+    }
 
+    if(inet_pton(family, address.c_str(), addr_ptr) <= 0) {
+        throw AddressException("Invalid IP address");
+    }
+
+    for (struct addrinfo* p = m_AddressInfo; p != nullptr; p = p->ai_next) {
+        if(p->ai_family == family) {
+            if(family == AF_INET) {
+                ((struct sockaddr_in*)p->ai_addr)->sin_addr = *((struct in_addr*)addr_ptr);
+            } else if(family == AF_INET6) {
+                ((struct sockaddr_in6*)p->ai_addr)->sin6_addr = *((struct in6_addr*)addr_ptr);
+            }
+        }
+    }
 }
 
-void Address::setPort(const std::string& port) {
-
+void Address::setPort(unsigned short port) {
+    for(struct addrinfo* p = m_AddressInfo; p != nullptr; p = p->ai_next) {
+        if(p->ai_family == AF_INET) {
+            ((struct sockaddr_in*)(m_AddressInfo->ai_addr))->sin_port = htons(port);
+        } else if (p->ai_family == AF_INET6) {
+            ((struct sockaddr_in6*)(m_AddressInfo->ai_addr))->sin6_port = htons(port);
+        }
+    }
 }
 
 struct sockaddr* Address::getSockaddr() const {
@@ -113,9 +146,9 @@ socklen_t Address::getSockaddrLength() const {
 
 in_port_t Address::getPort() const {
     if(m_AddressInfo->ai_addr->sa_family == AF_INET) {
-        return ((struct sockaddr_in*)m_AddressInfo->ai_addr)->sin_port;
+        return ntohs(((struct sockaddr_in*)m_AddressInfo->ai_addr)->sin_port);
     } else if(m_AddressInfo->ai_addr->sa_family == AF_INET6) {
-        return ((struct sockaddr_in6*)m_AddressInfo->ai_addr)->sin6_port;
+        return ntohs(((struct sockaddr_in6*)m_AddressInfo->ai_addr)->sin6_port);
     } else {
         return 42069; // DEFAULT_PORT
     }

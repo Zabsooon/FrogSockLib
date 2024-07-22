@@ -22,17 +22,33 @@ private:
     std::string m_Message;
 };
 
-/* If address hints are not specified they are set to support IPv4 or IPv6.
- * Also the type of socket is set to TCP stream sockets.
- *
- * Constructors:
- * hostname: can be DNS, IPv4 or IPv6 address
- * service: can be port number or service name eg. "http", "smtp"
- */
+/*
+    TODO:
+    - Constructor that instead of hints takes bunch of parameters,
+    - Documentation,
+*/
 class Address {
 public:
+    /*
+    @brief Constructs address with type (AF_UNSPEC) DEFAULT hostname, service and hints.
+    */
     Address();
+    /*
+    @brief Construct address with type AF_INET or AF_INET6 
+           depending on hostname and service with DEFAULT hints.
+    
+    @param hostname DNS, IPv4, IPv6 address.
+    @param service Port number or service name, eg. http, smtp.
+    */
     Address(const std::string& hostname, const std::string& service);
+    /*
+    @brief Construct address with type AF_INET or AF_INET6
+           depending on hostname, service and hints.
+    
+    @param hostname DNS, IPv4, IPv6 address.
+    @param service Port number or service name, eg. http, smtp.
+    @param hints
+    */
     Address(const std::string& hostname, const std::string& service, const struct addrinfo& hints);
     ~Address();
 
@@ -47,7 +63,7 @@ public:
 
     // For struct sockaddr *ai_addr:
     void setAddress(const std::string& address);
-    void setPort(const std::string& port);
+    void setPort(unsigned short port);
 
     struct sockaddr* getSockaddr() const;
     socklen_t getSockaddrLength() const;
